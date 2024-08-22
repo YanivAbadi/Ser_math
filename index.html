@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>משחק הסדרות שלנו</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('background.png');
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #game-container {
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        input {
+            margin: 10px 0;
+            padding: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .cube {
+            width: 60px;
+            height: 60px;
+            background-color: #f0f0f0;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            margin: 5px;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .cube:hover {
+            transform: scale(1.1);
+        }
+        #number-sequence {
+            margin-bottom: 20px;
+        }
+        #options {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 300px;
+            height: 300px;
+            position: relative;
+            margin: 0 auto;
+        }
+        .option-cube {
+            position: absolute;
+            transform-origin: 150px 150px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="name-screen">
+            <h1>ברוכים הבאים למשחק הסדרות שלנו!</h1>
+            <input type="text" id="player-name" placeholder="הכנס את שמך">
+            <button onclick="startGame()" id="start-button">התחל משחק</button>
+        </div>
+        <div id="game-screen" style="display: none;">
+            <h1>מצאו את המספר הבא!</h1>
+            <div id="number-sequence"></div>
+            <div id="options"></div>
+        </div>
+        <div id="end-screen" style="display: none;">
+            <h1>כל הכבוד לך, הצלחת 5 תרגילים!</h1>
+            <button onclick="resetGame()">משחק חדש</button>
+        </div>
+    </div>
+
+    <script>
+        let playerName = '';
+        let currentSequence = [];
+        let correctAnswer = 0;
+        let solvedProblems = 0;
+        let backgroundMusic;
+
+        const pastelColors = ['#FFB3BA', '#BAFFC9', '#BAE1FF', '#FFFFBA', '#FFDFBA', '#E0BBE4', '#957DAD', '#D291BC'];
+
+        function startGame() {
+            playerName = document.getElementById('player-name').value;
+            if (playerName.trim() === '') {
+                alert('אנא הכנס את שמך');
+                return;
+            }
+            document.getElementById('name-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+            startBackgroundMusic();
+            newProblem();
+        }
+
+        function startBackgroundMusic() {
+            backgroundMusic = new Audio('sound.mp3');
+            backgroundMusic.loop = true;
+            backgroundMusic.play();
+        }
+
+        function newProblem() {
+            const start = Math.floor(Math.random() * 20);
+            const step = Math.floor(Math.random() * 5) + 1;
+            currentSequence = [start, start + step, start + 2 * step];
+            correctAnswer = start + 3 * step;
+
+            const sequenceElement = document.getElementById('number-sequence');
+            sequenceElement.innerHTML = '';
+            for (let i = 0; i < 4; i++) {
+                const cube = document.createElement('div');
+                cube.className = 'cube';
+                cube.style.backgroundColor = pastelColors[i];
+                cube.textContent = i < 3 ? currentSequence[i] : '?';
+                sequenceElement.appendChild(cube);
+            }
+
+            const optionsElement = document.getElementById('options');
+            optionsElement.innerHTML = '';
+            const options = [correctAnswer];
+            while (options.length < 8) {
+                const randomOption = Math.floor(Math.random() * 100);
+                if (!options.includes(randomOption)) {
+                    options.push(randomOption);
+                }
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            options.forEach((option, index) => {
+                const cube = document.createElement('div');
+                cube.className = 'cube option-cube';
+                cube.style.backgroundColor = pastelColors[index];
+                cube.textContent = option;
+                cube.onclick = () => checkAnswer(option);
+                const angle = (index / 8) * 2 * Math.PI;
+                const radius = 120;
+                cube.style.left = `${150 + radius * Math.cos(angle) - 30}px`;
+                cube.style.top = `${150 + radius * Math.sin(angle) - 30}px`;
+                optionsElement.appendChild(cube);
+            });
+        }
+
+        function checkAnswer(answer) {
+            if (answer === correctAnswer) {
+                playSound('yes.mp3');
+                document.querySelector('#number-sequence .cube:last-child').textContent = correctAnswer;
+                solvedProblems++;
+                if (solvedProblems === 5) {
+                    setTimeout(endGame, 1000);
+                } else {
+                    setTimeout(newProblem, 1000);
+                }
+            } else {
+                playSound('no.mp3');
+                shakeSequence();
+            }
+        }
+
+        function playSound(soundFile) {
+            const audio = new Audio(soundFile);
+            audio.play();
+        }
+
+        function shakeSequence() {
+            const sequenceElement = document.getElementById('number-sequence');
+            sequenceElement.style.animation = 'shake 0.5s';
+            setTimeout(() => {
+                sequenceElement.style.animation = '';
+            }, 500);
+        }
+
+        function endGame() {
+            document.getElementById('game-screen').style.display = 'none';
+            document.getElementById('end-screen').style.display = 'block';
+        }
+
+        function resetGame() {
+            solvedProblems = 0;
+            document.getElementById('end-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+            newProblem();
+        }
+
+        document.getElementById('player-name').addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                document.getElementById('start-button').click();
+            }
+        });
+    </script>
+</body>
+</html>
